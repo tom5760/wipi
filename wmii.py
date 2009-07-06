@@ -1,7 +1,7 @@
 '''
 wipi - Python configuration library for Wmii
 By: Tom Wambold <tom5760@gmail.com>
-Heavily influenced by wmpy:
+Heavily influenced by wmpy.
 '''
 
 import sys
@@ -11,19 +11,29 @@ import heapq
 import subprocess
 
 from pyxp.asyncclient import Client, OREAD, OWRITE, ORDWR
+
 client = Client(namespace='wmii')
 
 class Wmii(object):
+    '''Main wmii configuration object.
+
+    Instantiate this and call .start to start the configuration.
+
+    '''
+
     def __init__(self):
         self._clear_bar()
-        self.ctl = Ctl('/ctl')
         self._colrules = Rules('/colrules')
         self._tagrules = Rules('/tagrules')
+
+        self.ctl = Ctl('/ctl')
         self.tag = Tags()
         self.client = Clients()
 
         self._widgets = {}
 
+        # Feel free to add functions to this dictionary to handle events in
+        # your own way.
         self.events = {
                 'CreateTag': [lambda t: self.tag.__setitem__(t, Tag(t))],
                 'DestroyTag': [lambda t: self.tag.__delitem__(t)],
@@ -37,22 +47,27 @@ class Wmii(object):
                 'UnresponsiveClient': [self._unresponsive_client],
         }
 
+        # Same here, your config can add actions to this dict
         self.actions = {
                 'quit': self.quit,
                 'restart': self.restart,
                 'rehash': self.build_program_list,
         }
 
-        self.colrules = property(self._colrules.get_rules, self._colrules.set_rules)
-        self.tagrules = property(self._tagrules.get_rules, self._tagrules.set_rules)
+        self.colrules = property(self._colrules.get_rules,
+                self._colrules.set_rules)
+        self.tagrules = property(self._tagrules.get_rules,
+                self._tagrules.set_rules)
 
     def action(self, action):
+        '''Launch an action from the actions dictionary.'''
         try:
             self.actions[action]()
         except KeyError:
             pass
 
     def execute(self, cmd, shell=True):
+        '''Launch an external command.'''
         if not cmd:
             return
 
@@ -63,66 +78,81 @@ class Wmii(object):
         return subprocess.Popen(cmd, shell=shell, preexec_fn=setsid)
 
     def register_widget(self, widget):
+        '''Adds a widget to be polled by the event loop.'''
         self._widgets[widget.name] = widget
 
     def menu(self, items):
-        wimenu = subprocess.Popen(['wimenu'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        '''Shows a menu using wimenu and returns the users choice.'''
+        wimenu = subprocess.Popen(['wimenu'], stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE)
         for item in items:
             wimenu.stdin.write('{0}\n'.format(item))
         wimenu.stdin.close()
         return wimenu.stdout.read().strip()
 
     def tag_menu(self):
+        '''Shortcut to show a menu of tags.'''
         return self.menu(sorted(map(lambda x: x.name, self.tag)))
 
     def action_menu(self):
+        '''Shortcut to show a menu of actions.'''
         return self.menu(sorted(self.actions.keys()))
 
     def program_menu(self):
+        '''Shortcut to show a menu of programs.'''
         return self.menu(self.program_list)
 
     def build_program_list(self):
+        '''Caches a list of programs for the program menu.'''
         dmenu_path = subprocess.Popen(['dmenu_path'], stdout=subprocess.PIPE)
         self.program_list = [p.strip() for p in dmenu_path.stdout]
 
     def restart(self):
+        '''Restart configuration'''
         self.execute(os.path.abspath(sys.argv[0]))
         sys.exit()
 
     def quit(self):
+        '''Quits wmii.'''
         self.ctl.write('quit')
-        sys.exit()
+        sys.exit(100)
 
     def start(self, timeout=1):
+        '''Starts the event loop.  Monitors widgets with interval "timeout".'''
+        # Tell wmii what keys to listen for
         client.write('/keys', '\n'.join(self.keybindings.keys()))
 
+        # Focus the currently selected tag
         self.tag['sel'].focus()
 
+        # Start reading events
         client.areadlines('/event', self._handle_event)
 
+        # Monitor widgets
         while True:
             for widget in self._widgets.values():
                 widget.update()
             time.sleep(timeout)
 
     def _handle_event(self, event):
+        '''Calls event handlers when events happen.'''
         event = event.split()
-        #print event
         try:
             handlers = self.events[event[0]]
         except KeyError:
-            #print 'Unhandled event {0}'.format(event[0])
             return
         for handler in handlers:
             handler(*event[1:])
 
     def _clear_bar(self):
+        '''Clears the bar of all widgets.'''
         for file in client.readdir('/rbar'):
             client.remove('/rbar/{0}'.format(file.name))
         for file in client.readdir('/lbar'):
             client.remove('/lbar/{0}'.format(file.name))
 
     def _unresponsive_client(self, client):
+        '''Called if a client becomes unresponsive.'''
         wihack = subprocess.Popen(['wihack', '-transient', client,
             'xmessage', '-nearmouse', '-buttons', 'Kill,Wait', '-print',
             'Client %s is not responding.  '
@@ -134,6 +164,7 @@ class Wmii(object):
             self.client[client].ctl = 'slay'
 
 class Ctl(object):
+    '''Frontend to ctl files'''
     def __init__(self, path):
         self.__dict__['file'] = client.open(path, ORDWR)
 
@@ -153,6 +184,7 @@ class Ctl(object):
         self.file.write(' '.join((key, value)))
 
 class Rules(object):
+    '''Frontend for the /colrules and /tagrules files.'''
     def __init__(self, path):
         self.file = client.open(path, ORDWR)
 
@@ -171,6 +203,7 @@ class Rules(object):
                     for k, v in dict.items()]))
 
 class Tag(object):
+    '''Frontend for a tag object (including widget).'''
     def __init__(self, name):
         self.name = name
         self.ctl = Ctl('/tag/{0}/ctl'.format(name))
@@ -190,6 +223,7 @@ class Tag(object):
         self.widget.label = self.widget.label[1:]
 
 class Tags(object):
+    '''Container for all tags in the system.'''
     path = '/tag'
     item = Tag
 
@@ -221,6 +255,7 @@ class Tags(object):
             client.remove('/lbar/{0}'.format(key))
 
 class Client(object):
+    '''Frontend for a client.'''
     def __init__(self, name):
         self.ctl = Ctl('/client/{0}/ctl'.format(name))
         self._tags = client.open('/client/{0}/tags'.format(name), ORDWR)
@@ -234,6 +269,7 @@ class Client(object):
     tags = property(get_tags, set_tags)
 
 class Clients(Tags):
+    '''Container for all clients.'''
     path = '/client'
     item = Client
 
@@ -244,6 +280,7 @@ class Clients(Tags):
         raise NotImplementedError
 
 class Widget(object):
+    '''Widget on the bar.'''
     def __init__(self, name, bar, color=None, label=None):
         self.name = name
         self.bar = bar

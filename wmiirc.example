@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+'''
+wmiirc.example - Example wmii configuration
+By: Tom Wambold <tom5760@gmail.com>
+
+Copy this to "wmiirc".
+'''
 
 import subprocess
 from datetime import datetime
@@ -18,7 +24,7 @@ def main():
     wmii.ctl.font = '-*-fixed-medium-r-*-*-13-*-*-*-*-*-*-*'
     # Modkey to drag windows
     wmii.ctl.grabmod = MODKEY
-    # What to do if there is a gap between windows (ignore, stretch)
+    # What to do if there is a gap between windows (ignore, stretch, etc)
     wmii.ctl.incmode = 'ignore'
 
     # Color triples: '<text> <background> <border>'
@@ -92,16 +98,20 @@ def main():
 ## Custom Functions ##
 
 def num_view(wmii, i):
+    '''Generates functions for MOD4-# keybindings.'''
     return lambda k: wmii.ctl.__setattr__('view', str(i))
 
 def num_tags(wmii, i):
+    '''Generates functions for MOD4-Shift-# keybindings.'''
     return lambda k: wmii.client['sel'].__setattr__('tags', str(i))
 
 def next_tag(wmii):
+    '''Cycles to next tag.'''
     taglist = sorted(map(lambda x: x.name, wmii.tag))
     wmii.ctl.view = taglist[(taglist.index(wmii.ctl.view) + 1) % len(taglist)]
 
 def prev_tag(wmii):
+    '''Cycles to previous tag.'''
     taglist = sorted(map(lambda x: x.name, wmii.tag))
     wmii.ctl.view = taglist[(taglist.index(wmii.ctl.view) - 1) % len(taglist)]
 
