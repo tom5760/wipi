@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+
+import subprocess
+from datetime import datetime
+
+from alsaaudio import Mixer, ALSAAudioError
+from wmii import Wmii, Widget
+
+def main():
+    wmii = Wmii()
+
+    MODKEY = 'Mod4'
+
+    # Position of bar - 'on bottom' | 'on top'
+    wmii.ctl.bar = 'on bottom'
+    # Border of floating windows
+    wmii.ctl.border = '2'
+    wmii.ctl.font = '-*-fixed-medium-r-*-*-13-*-*-*-*-*-*-*'
+    # Modkey to drag windows
+    wmii.ctl.grabmod = MODKEY
+    # What to do if there is a gap between windows (ignore, stretch)
+    wmii.ctl.incmode = 'ignore'
+
+    # Color triples: '<text> <background> <border>'
+    wmii.ctl.normcolors = '#cccccc #004050 #002030'
+    wmii.ctl.focuscolors = '#fefefe #307080 #5090a0'
+
+    wmii.colrules = {
+            '.*': '50+50',
+    }
+
+    wmii.tagrules = {
+            'Pidgin': 'im',
+    }
+
+    wmii.register_widget(Clock('999-clock'))
+
+    volume = Volume('800-volume')
+    wmii.register_widget(volume)
+
+    wmii.register_widget(Battery('700-battery'))
+
+    wmii.keybindings = {
+            MODKEY+'-Return': lambda k: wmii.execute('xterm'),
+            MODKEY+'-Shift-c': lambda k: wmii.client['sel'].kill(),
+
+            MODKEY+'-d': lambda k: wmii.tag['sel'].ctl.write('colmode sel default-max'),
+            MODKEY+'-s': lambda k: wmii.tag['sel'].ctl.write('colmode sel stack-max'),
+            MODKEY+'-m': lambda k: wmii.tag['sel'].ctl.write('colmode sel stack+max'),
+            MODKEY+'-f': lambda k: wmii.client['sel'].ctl.write('Fullscreen toggle'),
+
+            MODKEY+'-a': lambda k: wmii.action(wmii.action_menu()),
+            MODKEY+'-p': lambda k: wmii.execute(wmii.program_menu()),
+
+            MODKEY+'-space': lambda k: wmii.tag['sel'].ctl.write('select toggle'),
+            MODKEY+'-Shift-space': lambda k: wmii.tag['sel'].ctl.write('send sel toggle'),
+
+            MODKEY+'-t': lambda k: wmii.ctl.write('view {0}'.format(wmii.tag_menu())),
+            MODKEY+'-Shift-t': lambda k: wmii.client['sel'].__setattr__('tags', wmii.tag_menu()),
+
+            MODKEY+'-h': lambda k: wmii.tag['sel'].ctl.write('select left'),
+            MODKEY+'-l': lambda k: wmii.tag['sel'].ctl.write('select right'),
+            MODKEY+'-j': lambda k: wmii.tag['sel'].ctl.write('select down'),
+            MODKEY+'-k': lambda k: wmii.tag['sel'].ctl.write('select up'),
+
+            MODKEY+'-Shift-h': lambda k: wmii.tag['sel'].ctl.write('send sel left'),
+            MODKEY+'-Shift-l': lambda k: wmii.tag['sel'].ctl.write('send sel right'),
+            MODKEY+'-Shift-j': lambda k: wmii.tag['sel'].ctl.write('send sel down'),
+            MODKEY+'-Shift-k': lambda k: wmii.tag['sel'].ctl.write('send sel up'),
+
+            MODKEY+'-Control-h': lambda k: wmii.tag['sel'].ctl.write('nudge sel sel left'),
+            MODKEY+'-Control-l': lambda k: wmii.tag['sel'].ctl.write('nudge sel sel right'),
+            MODKEY+'-Control-j': lambda k: wmii.tag['sel'].ctl.write('nudge sel sel down'),
+            MODKEY+'-Control-k': lambda k: wmii.tag['sel'].ctl.write('nudge sel sel up'),
+
+            MODKEY+'-Tab': lambda k: next_tag(wmii),
+            MODKEY+'-Shift-Tab': lambda _: prev_tag(wmii),
+
+            'XF86AudioMute' : lambda _: volume.update(),
+            'XF86AudioRaiseVolume' : lambda _: volume.update(),
+            'XF86AudioLowerVolume' : lambda _: volume.update(),
+    }
+
+    # Create switching and tagging keybindings for MODKEY+number and MODKEY+Shift+number
+    for i in range(10):
+        wmii.keybindings['{0}-{1}'.format(MODKEY, i)] = num_view(wmii, i)
+        wmii.keybindings['{0}-Shift-{1}'.format(MODKEY, i)] = num_tags(wmii, i)
+
+    wmii.action('rehash')
+    wmii.start(5)
+
+## Custom Functions ##
+
+def num_view(wmii, i):
+    return lambda k: wmii.ctl.__setattr__('view', str(i))
+
+def num_tags(wmii, i):
+    return lambda k: wmii.client['sel'].__setattr__('tags', str(i))
+
+def next_tag(wmii):
+    taglist = sorted(map(lambda x: x.name, wmii.tag))
+    wmii.ctl.view = taglist[(taglist.index(wmii.ctl.view) + 1) % len(taglist)]
+
+def prev_tag(wmii):
+    taglist = sorted(map(lambda x: x.name, wmii.tag))
+    wmii.ctl.view = taglist[(taglist.index(wmii.ctl.view) - 1) % len(taglist)]
+
+## Widgets ##
+
+class Clock(Widget):
+    def __init__(self, name, format=None):
+        super(Clock, self).__init__(name, 'rbar')
+        if format is None:
+            self.format = '%a %b %-e, %Y %-l:%M%p'
+        else:
+            self.format = format
+
+    def update(self):
+        self.label = datetime.now().strftime(self.format)
+        return 1
+
+class Volume(Widget):
+    def __init__(self, name, voldev='Master', mutedev='Master', step=2):
+        super(Volume, self).__init__(name, 'rbar')
+        self.voldev = voldev
+        self.mutedev = mutedev
+        self.step = step
+        self.update()
+
+    def update(self):
+        if bool(Mixer(self.mutedev).getmute()[0]):
+            self.label = 'Vol: Mute'
+        else:
+            self.label = 'Vol: {0}%'.format(Mixer(self.voldev).getvolume()[0])
+        return None
+
+    def click(self, button):
+        if button == 1:
+            mixer = Mixer(self.mutedev)
+            mixer.setmute(not bool(mixer.getmute()[0]))
+
+        elif button == 4:
+            mixer = Mixer(self.voldev)
+            try:
+                mixer.setvolume(mixer.getvolume()[0] + self.step)
+            except ALSAAudioError:
+                return
+
+        elif button == 5:
+            mixer = Mixer(self.voldev)
+            try:
+                mixer.setvolume(mixer.getvolume()[0] - self.step)
+            except ALSAAudioError:
+                return
+
+        self.update()
+
+class Battery(Widget):
+    def __init__(self, name, bat='BAT0', time=False):
+        super(Battery, self).__init__(name, 'rbar')
+        self.bat = bat
+        self.time = time
+
+    def update(self):
+        acpi = subprocess.Popen(['acpi'], stdout=subprocess.PIPE)
+        out = acpi.communicate()[0].split()
+        self.label = 'Bat: {0}'.format(out[3])
+
+if __name__ == '__main__':
+    main()
