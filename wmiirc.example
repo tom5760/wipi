@@ -174,7 +174,11 @@ class Battery(Widget):
     def update(self):
         acpi = subprocess.Popen(['acpi'], stdout=subprocess.PIPE)
         out = acpi.communicate()[0].split()
-        self.label = 'Bat: {0}'.format(out[3])
+        # This messes up for me sometimes. My ACPI is odd.
+        try:
+            self.label = 'Bat: {0}'.format(out[3])
+        except IndexError:
+            pass
 
 if __name__ == '__main__':
     main()
