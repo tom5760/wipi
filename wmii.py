@@ -11,6 +11,7 @@ import heapq
 import subprocess
 
 from pyxp.asyncclient import Client, OREAD, OWRITE, ORDWR
+from pyxp.client import RPCError
 
 client = Client(namespace='wmii')
 
@@ -169,7 +170,11 @@ class Ctl(object):
         self.__dict__['file'] = client.open(path, ORDWR)
 
     def write(self, value):
-        self.file.write(value)
+        try:
+            self.file.write(value)
+            return True
+        except RPCError:
+            return False
 
     def __getattr__(self, key):
         rv = None
@@ -181,7 +186,11 @@ class Ctl(object):
         return rv
 
     def __setattr__(self, key, value):
-        self.file.write(' '.join((key, value)))
+        try:
+            self.file.write(' '.join((key, value)))
+            return True
+        except:
+            return False
 
 class Rules(object):
     '''Frontend for the /colrules and /tagrules files.'''
