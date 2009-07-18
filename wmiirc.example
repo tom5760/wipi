@@ -54,7 +54,7 @@ def main():
 
     wmii.keybindings = {
             MODKEY+'-Return': lambda k: wmii.execute('xterm'),
-            MODKEY+'-Shift-c': lambda k: wmii.client['sel'].kill(),
+            MODKEY+'-Shift-c': lambda k: wmii.client['sel'].ctl.write('kill'),
 
             MODKEY+'-d': lambda k: wmii.tag['sel'].ctl.write('colmode sel default-max'),
             MODKEY+'-s': lambda k: wmii.tag['sel'].ctl.write('colmode sel stack-max'),
