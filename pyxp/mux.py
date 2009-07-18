@@ -19,7 +19,7 @@ import traceback
 
 from pyxp import fields
 from pyxp.dial import dial
-from threading import *
+from threading import Thread, Condition, RLock
 Condition = Condition().__class__
 
 __all__ = 'Mux',

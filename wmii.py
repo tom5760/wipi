@@ -10,6 +10,7 @@ import logging
 import time
 import heapq
 import subprocess
+import threading
 
 from pyxp.asyncclient import Client, OREAD, OWRITE, ORDWR
 from pyxp.client import RPCError
@@ -31,6 +32,8 @@ class Wmii(object):
         self.ctl = Ctl('/ctl')
         self.tag = Tags()
         self.client = Clients()
+
+        self._quit = False
 
         self._widgets = {}
 
@@ -112,11 +115,13 @@ class Wmii(object):
     def restart(self):
         '''Restart configuration'''
         self.execute(os.path.abspath(sys.argv[0]))
+        self._quit = True
         sys.exit()
 
     def quit(self):
         '''Quits wmii.'''
         self.ctl.write('quit')
+        self._quit = True
         sys.exit(100)
 
     def start(self, timeout=1):
@@ -132,6 +137,8 @@ class Wmii(object):
 
         # Monitor widgets
         while True:
+            if self._quit:
+                sys.exit()
             for widget in self._widgets.values():
                 try:
                     widget.update()

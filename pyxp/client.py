@@ -4,7 +4,7 @@ import operator
 import os
 import re
 import sys
-from threading import *
+from threading import RLock
 import traceback
 
 import pyxp
