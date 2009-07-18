@@ -18,7 +18,7 @@ from plugins.battery import Battery
 def main():
     wmii = Wmii()
     # All exceptions will be caught and logged, instead of bringing down wmiirc
-    logging.basicConfig(filename=os.path.expanduser('~/.wmii-hg/log'))
+    logging.basicConfig(filename=os.path.expanduser('~/.wmii-hg/log'),filemode='w')
 
     MODKEY = 'Mod4'
 
