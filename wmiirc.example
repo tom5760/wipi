@@ -7,6 +7,7 @@ Copy this to "wmiirc".
 '''
 
 import os
+import logging
 
 from wmii import Wmii
 
@@ -16,6 +17,8 @@ from plugins.battery import Battery
 
 def main():
     wmii = Wmii()
+    # All exceptions will be caught and logged, instead of bringing down wmiirc
+    logging.basicConfig(filename=os.path.expanduser('~/.wmii-hg/log'))
 
     MODKEY = 'Mod4'
 

@@ -6,6 +6,7 @@ Heavily influenced by wmpy.
 
 import sys
 import os
+import logging
 import time
 import heapq
 import subprocess
@@ -65,7 +66,7 @@ class Wmii(object):
         try:
             self.actions[action]()
         except KeyError:
-            pass
+            logging.error('Invalid action "{0}"'.format(action))
 
     def execute(self, cmd, shell=True):
         '''Launch an external command.'''
@@ -132,7 +133,11 @@ class Wmii(object):
         # Monitor widgets
         while True:
             for widget in self._widgets.values():
-                widget.update()
+                try:
+                    widget.update()
+                except Exception as e:
+                    logging.error('Exception in widget {0}: {1}'
+                            .format(widget.name, e))
             time.sleep(timeout)
 
     def _handle_event(self, event):
@@ -143,7 +148,11 @@ class Wmii(object):
         except KeyError:
             return
         for handler in handlers:
-            handler(*event[1:])
+            try:
+                handler(*event[1:])
+            except Exception as e:
+                logging.error('Exception on event {0}: {1}'
+                        .format(' '.join(event[1:]), e))
 
     def _clear_bar(self):
         '''Clears the bar of all widgets.'''
@@ -173,7 +182,8 @@ class Ctl(object):
         try:
             self.file.write(value)
             return True
-        except RPCError:
+        except RPCError as e:
+            logging.error('Exception writing to ctl: {0}'.format(e))
             return False
 
     def __getattr__(self, key):
@@ -190,6 +200,7 @@ class Ctl(object):
             self.file.write(' '.join((key, value)))
             return True
         except:
+            logging.error('Exception writing to ctl: {0}'.format(e))
             return False
 
 class Rules(object):
