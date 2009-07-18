@@ -6,11 +6,13 @@ By: Tom Wambold <tom5760@gmail.com>
 Copy this to "wmiirc".
 '''
 
-import subprocess
-from datetime import datetime
+import os
 
-from alsaaudio import Mixer, ALSAAudioError
-from wmii import Wmii, Widget
+from wmii import Wmii
+
+from plugins.clock import Clock
+from plugins.volume import Volume
+from plugins.battery import Battery
 
 def main():
     wmii = Wmii()
@@ -41,10 +43,14 @@ def main():
 
     wmii.register_widget(Clock('999-clock'))
 
+    # Keep a reference for ourselves so I can use keybindings to update it
     volume = Volume('800-volume')
     wmii.register_widget(volume)
 
     wmii.register_widget(Battery('700-battery'))
+
+    # Adding a custom action:
+    wmii.actions['lock'] = lambda: wmii.execute('xscreensaver-command -lock')
 
     wmii.keybindings = {
             MODKEY+'-Return': lambda k: wmii.execute('xterm'),
@@ -114,71 +120,6 @@ def prev_tag(wmii):
     '''Cycles to previous tag.'''
     taglist = sorted(map(lambda x: x.name, wmii.tag))
     wmii.ctl.view = taglist[(taglist.index(wmii.ctl.view) - 1) % len(taglist)]
-
-## Widgets ##
-
-class Clock(Widget):
-    def __init__(self, name, format=None):
-        super(Clock, self).__init__(name, 'rbar')
-        if format is None:
-            self.format = '%a %b %-e, %Y %-l:%M%p'
-        else:
-            self.format = format
-
-    def update(self):
-        self.label = datetime.now().strftime(self.format)
-        return 1
-
-class Volume(Widget):
-    def __init__(self, name, voldev='Master', mutedev='Master', step=2):
-        super(Volume, self).__init__(name, 'rbar')
-        self.voldev = voldev
-        self.mutedev = mutedev
-        self.step = step
-        self.update()
-
-    def update(self):
-        if bool(Mixer(self.mutedev).getmute()[0]):
-            self.label = 'Vol: Mute'
-        else:
-            self.label = 'Vol: {0}%'.format(Mixer(self.voldev).getvolume()[0])
-        return None
-
-    def click(self, button):
-        if button == 1:
-            mixer = Mixer(self.mutedev)
-            mixer.setmute(not bool(mixer.getmute()[0]))
-
-        elif button == 4:
-            mixer = Mixer(self.voldev)
-            try:
-                mixer.setvolume(mixer.getvolume()[0] + self.step)
-            except ALSAAudioError:
-                return
-
-        elif button == 5:
-            mixer = Mixer(self.voldev)
-            try:
-                mixer.setvolume(mixer.getvolume()[0] - self.step)
-            except ALSAAudioError:
-                return
-
-        self.update()
-
-class Battery(Widget):
-    def __init__(self, name, bat='BAT0', time=False):
-        super(Battery, self).__init__(name, 'rbar')
-        self.bat = bat
-        self.time = time
-
-    def update(self):
-        acpi = subprocess.Popen(['acpi'], stdout=subprocess.PIPE)
-        out = acpi.communicate()[0].split()
-        # This messes up for me sometimes. My ACPI is odd.
-        try:
-            self.label = 'Bat: {0}'.format(out[3])
-        except IndexError:
-            pass
 
 if __name__ == '__main__':
     main()
