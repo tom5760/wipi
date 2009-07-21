@@ -109,8 +109,16 @@ class Wmii(object):
 
     def build_program_list(self):
         '''Caches a list of programs for the program menu.'''
-        dmenu_path = subprocess.Popen(['dmenu_path'], stdout=subprocess.PIPE)
-        self.program_list = [p.strip() for p in dmenu_path.stdout]
+        self.program_list = []
+        for path in os.environ['PATH'].split(':'):
+            try:
+                pathlist = os.listdir(path)
+            except OSError:
+                continue
+            for bin in os.listdir(path):
+                binpath = '/'.join((path, bin))
+                if os.path.isfile(binpath) and os.access(binpath, os.X_OK):
+                    self.program_list.append(bin)
 
     def restart(self):
         '''Restart configuration'''
