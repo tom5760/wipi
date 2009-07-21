@@ -194,12 +194,7 @@ class Ctl(object):
         self.__dict__['file'] = client.open(path, ORDWR)
 
     def write(self, value):
-        try:
-            self.file.write(value)
-            return True
-        except RPCError as e:
-            logging.error('Exception writing to ctl: {0}'.format(e))
-            return False
+        self.file.write(value)
 
     def __getattr__(self, key):
         rv = None
@@ -211,12 +206,7 @@ class Ctl(object):
         return rv
 
     def __setattr__(self, key, value):
-        try:
-            self.file.write(' '.join((key, value)))
-            return True
-        except:
-            logging.error('Exception writing to ctl: {0}'.format(e))
-            return False
+        self.write(' '.join((key, value)))
 
 class Rules(object):
     '''Frontend for the /colrules and /tagrules files.'''
