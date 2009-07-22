@@ -13,11 +13,12 @@ class Battery(Widget):
         self._viewtoggle = True
 
     def update(self):
-        status = '?'
         if self.charging:
             status = '^'
         elif self.discharging:
             status = 'v'
+        else:
+            status = ''
 
         if self._viewtoggle:
             self.label = 'Bat: {0}{1}%'.format(status, self.percentage)
