@@ -156,13 +156,14 @@ class Wmii(object):
                         .format(' '.join(event[1:]), e))
 
     def _check_widgets(self, timeout):
-        for widget in self._widgets.values():
-            try:
-                widget.update()
-            except Exception as e:
-                logging.error('Exception in widget {0}: {1}'
-                        .format(widget.name, e))
-        time.sleep(timeout)
+        while True:
+            for widget in self._widgets.values():
+                try:
+                    widget.update()
+                except Exception as e:
+                    logging.error('Exception in widget {0}: {1}'
+                            .format(widget.name, e))
+            time.sleep(timeout)
 
     def _clear_bar(self):
         '''Clears the bar of all widgets.'''
