@@ -28,8 +28,8 @@ class Wmii(object):
 
     def __init__(self):
         self._clear_bar()
-        self._colrules = Rules('/colrules')
-        self._tagrules = Rules('/tagrules')
+        self.colrules = Rules('/colrules')
+        self.tagrules = Rules('/tagrules')
 
         self.ctl = Ctl('/ctl')
         self.tag = Tags()
@@ -58,11 +58,6 @@ class Wmii(object):
                 'restart': self.restart,
                 'rehash': self.build_program_list,
         }
-
-        self.colrules = property(self._colrules.get_rules,
-                self._colrules.set_rules)
-        self.tagrules = property(self._tagrules.get_rules,
-                self._tagrules.set_rules)
 
     def action(self, action):
         '''Launch an action from the actions dictionary.'''
@@ -220,13 +215,12 @@ class Rules(object):
             key, value = line.split(' -> ')
             # The 1:-1 is to remove the slashes
             rules[key[1:-1]] = value
-        self.file.offset = 0
         return rules
 
-    def set_rules(self, dict):
-        self.file.write(self.path,
-                '\n'.join(['/{key}/ -> {value}'.format(key=k, value=v)
-                    for k, v in dict.items()]))
+    def set_rules(self, mydict):
+        msg = '\n'.join(['/{0}/ -> {1}'.format(k, v)
+            for k, v in mydict.items()]) + '\n'
+        self.file.write(msg)
 
 class Tag(object):
     '''Frontend for a tag object (including widget).'''
