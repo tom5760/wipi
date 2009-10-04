@@ -17,15 +17,12 @@ from pyxp.client import RPCError
 
 client = Client(namespace='wmii')
 
-_quit = False
-
 class Wmii(object):
     '''Main wmii configuration object.
 
     Instantiate this and call .start to start the configuration.
 
     '''
-
     def __init__(self):
         self._clear_bar()
         self._colrules = Rules('/colrules')
@@ -73,14 +70,15 @@ class Wmii(object):
 
     def execute(self, cmd, shell=True):
         '''Launch an external command.'''
-        if not cmd:
-            return
+        #if not cmd:
+        #    return
 
-        setsid = getattr(os, 'setsid', None)
-        if not setsid:
-            setsid = getattr(os, 'setpgrp', None)
+        #setsid = getattr(os, 'setsid', None)
+        #if not setsid:
+        #    setsid = getattr(os, 'setpgrp', None)
 
-        return subprocess.Popen(cmd, shell=shell, preexec_fn=setsid)
+        #return subprocess.Popen(cmd, shell=shell, preexec_fn=setsid)
+        return subprocess.Popen(cmd, shell=shell)
 
     def register_widget(self, widget):
         '''Adds a widget to be polled by the event loop.'''
@@ -122,16 +120,13 @@ class Wmii(object):
 
     def restart(self):
         '''Restart configuration'''
-        global _quit
         self.execute(os.path.abspath(sys.argv[0]))
-        _quit = True
         sys.exit()
 
     def quit(self):
         '''Quits wmii.'''
         self.ctl.write('quit')
-        _quit = True
-        sys.exit(100)
+        sys.exit()
 
     def start(self, timeout=1):
         '''Starts the event loop.  Monitors widgets with interval "timeout".'''
@@ -142,19 +137,17 @@ class Wmii(object):
         self.tag['sel'].focus()
 
         # Start reading events
-        client.areadlines('/event', self._handle_event)
+        #client.areadlines('/event', self._handle_event)
 
-        # Monitor widgets
-        while True:
-            if _quit:
-                sys.exit()
-            for widget in self._widgets.values():
-                try:
-                    widget.update()
-                except Exception as e:
-                    logging.error('Exception in widget {0}: {1}'
-                            .format(widget.name, e))
-            time.sleep(timeout)
+        widget_thread = threading.Thread(target=self._check_widgets, args=(timeout,))
+        widget_thread.daemon = False
+        widget_thread.start()
+
+        i=0
+        for line in client.readlines('/event'):
+            print i, '---', line
+            i+=1
+            self._handle_event(line)
 
     def _handle_event(self, event):
         '''Calls event handlers when events happen.'''
@@ -169,6 +162,15 @@ class Wmii(object):
             except Exception as e:
                 logging.error('Exception on event {0}: {1}'
                         .format(' '.join(event[1:]), e))
+
+    def _check_widgets(self, timeout):
+        for widget in self._widgets.values():
+            try:
+                widget.update()
+            except Exception as e:
+                logging.error('Exception in widget {0}: {1}'
+                        .format(widget.name, e))
+        time.sleep(timeout)
 
     def _clear_bar(self):
         '''Clears the bar of all widgets.'''
@@ -337,7 +339,4 @@ class Widget(object):
     label = property(get_label, set_label)
 
     def __del__(self):
-        global _quit
-        if _quit:
-            return
         self.file.remove()
