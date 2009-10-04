@@ -138,10 +138,7 @@ class Wmii(object):
         widget_thread.daemon = False
         widget_thread.start()
 
-        i=0
         for line in client.readlines('/event'):
-            print i, '---', line
-            i+=1
             self._handle_event(line)
 
     def _handle_event(self, event):
