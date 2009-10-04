@@ -135,7 +135,7 @@ class Wmii(object):
         #client.areadlines('/event', self._handle_event)
 
         widget_thread = threading.Thread(target=self._check_widgets, args=(timeout,))
-        widget_thread.daemon = False
+        widget_thread.daemon = True
         widget_thread.start()
 
         for line in client.readlines('/event'):
