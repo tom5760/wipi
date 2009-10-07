@@ -40,13 +40,13 @@ def main():
     wmii.ctl.normcolors = '#cccccc #004050 #002030'
     wmii.ctl.focuscolors = '#fefefe #307080 #5090a0'
 
-    wmii.colrules = {
+    wmii.colrules.set_rules({
             '.*': '50+50',
-    }
+    })
 
-    wmii.tagrules = {
+    wmii.tagrules.set_rules({
             'Pidgin': 'im',
-    }
+    })
 
     wmii.register_widget(Clock('999-clock'))
 
