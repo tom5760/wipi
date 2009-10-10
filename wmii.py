@@ -12,7 +12,7 @@ import heapq
 import subprocess
 import threading
 
-from pyxp.asyncclient import Client, OREAD, OWRITE, ORDWR
+from pyxp.client import Client, OREAD, OWRITE, ORDWR
 from pyxp.client import RPCError
 
 client = Client(namespace='wmii')
