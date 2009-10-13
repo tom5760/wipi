@@ -15,7 +15,6 @@ class Volume(Widget):
             self.label = 'Vol: Mute'
         else:
             self.label = 'Vol: {0}%'.format(Mixer(self.voldev).getvolume()[0])
-        return None
 
     def click(self, button):
         if button == 1:

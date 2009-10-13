@@ -12,4 +12,3 @@ class Clock(Widget):
 
     def update(self):
         self.label = datetime.now().strftime(self.format)
-        return 1
