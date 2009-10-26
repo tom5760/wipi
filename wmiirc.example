@@ -15,9 +15,7 @@ import logging
 sys.path.append('/etc/wmii-hg/python/')
 from wmii import Wmii
 
-from plugins.clock import Clock
-from plugins.volume import Volume
-from plugins.battery import Battery
+from plugins import Clock, Volume, Battery, Spacer
 
 def main():
     wmii = Wmii()
@@ -41,11 +39,11 @@ def main():
     wmii.ctl.focuscolors = '#fefefe #307080 #5090a0'
 
     wmii.colrules.set_rules({
-            '.*': '50+50',
+        '.*': '50+50',
     })
 
     wmii.tagrules.set_rules({
-            'Pidgin': 'im',
+        'Pidgin': 'im',
     })
 
     wmii.register_widget(Clock('999-clock'))
@@ -55,6 +53,7 @@ def main():
     wmii.register_widget(volume)
 
     wmii.register_widget(Battery('700-battery'))
+    wmii.register_widget(Spacer('500-spacer'))
 
     # Adding a custom action:
     wmii.actions['lock'] = lambda: wmii.execute('xscreensaver-command -lock')
