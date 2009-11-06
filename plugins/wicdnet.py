@@ -36,7 +36,8 @@ class Wicd(Widget):
         self.label = 'Net: Disconnected'
 
     def click(self, button):
-        subprocess.Popen(('wicd-client', '-n'))
+        if button == 1:
+            subprocess.Popen(('wicd-client', '-n'))
 
     # Borrowed from Wicd's wicd-curses.py
     def setup_dbus(self):
