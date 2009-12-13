@@ -98,7 +98,10 @@ class Wmii(object):
 
     def program_menu(self):
         '''Shortcut to show a menu of programs.'''
-        return self.menu(self.program_list)
+        prog = self.menu(self.program_list)
+        self.program_list.remove(prog)
+        self.program_list.insert(0, prog)
+        return prog
 
     def build_program_list(self):
         '''Caches a list of programs for the program menu.'''
